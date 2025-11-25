@@ -104,10 +104,25 @@ describe("GET /api/user/profile", () => {
     expect(data.error).toBe("Unauthorized");
   });
 
-  it("should return 500 on error", async () => {
+  it("should return default subscription when user not found", async () => {
     vi.mocked(getCurrentUserId).mockResolvedValue("clerk-123");
     vi.mocked(getUserByClerkId).mockRejectedValue(
-      new Error("Database error")
+      new Error("Failed to get user: User not found")
+    );
+
+    const response = await GET();
+    const data = await response.json();
+
+    expect(response.status).toBe(200);
+    expect(data.subscription_plan).toBe("free");
+    expect(data.subscription_status).toBe("active");
+    expect(data.clerk_user_id).toBe("clerk-123");
+  });
+
+  it("should return 500 on actual database error", async () => {
+    vi.mocked(getCurrentUserId).mockResolvedValue("clerk-123");
+    vi.mocked(getUserByClerkId).mockRejectedValue(
+      new Error("Database connection failed")
     );
 
     const response = await GET();

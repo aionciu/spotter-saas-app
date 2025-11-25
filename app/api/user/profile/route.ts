@@ -22,7 +22,26 @@ export async function GET() {
     }
 
     // Get user from database
-    const user = await getUserByClerkId(clerkUserId);
+    // If user doesn't exist yet (e.g., first-time signup), return default free plan
+    // This allows SubscriptionContext to work even for new users
+    let user;
+    try {
+      user = await getUserByClerkId(clerkUserId);
+    } catch (userError) {
+      // User not found in database - return default subscription
+      // This is expected for new users who haven't been synced to the database yet
+      const errorMessage = userError instanceof Error ? userError.message : String(userError);
+      if (errorMessage.includes("Failed to get user") || errorMessage.includes("not found")) {
+        console.warn("User not found in database, returning default subscription");
+        return NextResponse.json({
+          clerk_user_id: clerkUserId,
+          subscription_plan: "free" as SubscriptionPlan,
+          subscription_status: "active" as SubscriptionStatus,
+        });
+      }
+      // Re-throw if it's a different error (e.g., database connection issue)
+      throw userError;
+    }
     
     // Get subscription if it exists
     const subscription = await getSubscriptionByUserId(user.id);
