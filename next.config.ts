@@ -1,8 +1,9 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-  /* config options here */
   reactCompiler: true,
+  // PWA support configuration
+  // Note: Full PWA manifest and service worker setup will be added in later phases
 };
 
 export default nextConfig;
