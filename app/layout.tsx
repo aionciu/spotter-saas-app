@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import { ClerkProvider } from "@clerk/nextjs";
 import { SubscriptionProvider } from "@/contexts/SubscriptionContext";
+import { QueryProvider } from "@/providers/QueryProvider";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -30,9 +31,11 @@ export default function RootLayout({
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
         <ClerkProvider>
-          <SubscriptionProvider>
-            {children}
-          </SubscriptionProvider>
+          <QueryProvider>
+            <SubscriptionProvider>
+              {children}
+            </SubscriptionProvider>
+          </QueryProvider>
         </ClerkProvider>
       </body>
     </html>
