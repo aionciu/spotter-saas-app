@@ -254,9 +254,12 @@ export default function ClientDetailPage() {
               <Package className="mr-2 h-4 w-4" />
               Create Package
             </Button>
-            <Button variant="outline" onClick={() => {/* TODO: Navigate to start workout */}}>
+            <Button
+              variant="outline"
+              onClick={() => router.push(`/clients/${clientId}/workouts/new`)}
+            >
               <Calendar className="mr-2 h-4 w-4" />
-              Start Workout
+              Create Workout
             </Button>
             <Button variant="outline" onClick={() => router.push(`/history?client=${clientId}`)}>
               <History className="mr-2 h-4 w-4" />
