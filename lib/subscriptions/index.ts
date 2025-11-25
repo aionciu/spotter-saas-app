@@ -8,4 +8,6 @@
 export * from "./plans";
 export * from "./enforcement";
 export * from "./utils";
+export * from "./usage";
+export * from "./enforce-limits";
 
