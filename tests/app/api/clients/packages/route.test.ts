@@ -86,14 +86,15 @@ describe("POST /api/clients/[clientId]/packages", () => {
 
   it("should create package successfully", async () => {
     const mockUser = {
-      id: "user-123",
+      id: "550e8400-e29b-41d4-a716-446655440000",
       clerk_user_id: "clerk-123",
       email: "test@example.com",
     };
 
+    const clientId = "550e8400-e29b-41d4-a716-446655440001";
     const mockPackage = {
-      id: "pkg-123",
-      client_id: "client-123",
+      id: "550e8400-e29b-41d4-a716-446655440002",
+      client_id: clientId,
       total_sessions: 10,
       remaining_sessions: 10,
     };
@@ -103,6 +104,12 @@ describe("POST /api/clients/[clientId]/packages", () => {
     };
 
     vi.mocked(getCurrentUserId).mockResolvedValue("clerk-123");
+    vi.mocked(getUserByClerkId).mockResolvedValue(mockUser);
+    vi.mocked(getClientById).mockResolvedValue({
+      id: clientId,
+      trainer_id: mockUser.id,
+      name: "Test Client",
+    });
     vi.mocked(enforcePackageLimit).mockResolvedValue();
     vi.mocked(createPackage).mockResolvedValue(mockPackage);
 
@@ -113,16 +120,18 @@ describe("POST /api/clients/[clientId]/packages", () => {
     });
 
     const response = await POST(request, {
-      params: { clientId: "client-123" },
+      params: { clientId },
     });
     const data = await response.json();
 
     expect(response.status).toBe(201);
     expect(data.package).toEqual(mockPackage);
-    expect(enforcePackageLimit).toHaveBeenCalledWith("client-123");
+    expect(enforcePackageLimit).toHaveBeenCalledWith(clientId);
   });
 
   it("should return 403 when limit exceeded", async () => {
+    const clientId = "550e8400-e29b-41d4-a716-446655440001";
+    
     vi.mocked(getCurrentUserId).mockResolvedValue("clerk-123");
     vi.mocked(enforcePackageLimit).mockRejectedValue(
       new Error("You've reached the limit of 3 packages")
@@ -135,7 +144,7 @@ describe("POST /api/clients/[clientId]/packages", () => {
     });
 
     const response = await POST(request, {
-      params: { clientId: "client-123" },
+      params: { clientId },
     });
     const data = await response.json();
 
