@@ -8,10 +8,11 @@ const nextConfig: NextConfig = {
   // Proxy configuration for Next.js 16
   // Clerk handles authentication routes automatically via ClerkProvider
   // All /api/auth/* routes are proxied by Clerk SDK internally
+  // Minimal middleware.ts exists only to provide auth() context - actual routing uses proxy mode
   async rewrites() {
     return [
-      // Clerk handles auth routes automatically, no manual proxy needed
-      // The ClerkProvider in app/layout.tsx sets up the proxy
+      // ClerkProvider automatically handles /api/auth/* route proxying
+      // No manual rewrites needed for Clerk authentication
     ];
   },
 };
