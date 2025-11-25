@@ -12,20 +12,21 @@ import { getClientById } from "@/lib/db/queries/clients";
  */
 export async function GET(
   request: Request,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id } = await params;
     const auth = await authenticateRequest();
     
     // Verify client belongs to user
-    await verifyClientOwnership(params.id, auth.userId);
+    await verifyClientOwnership(id, auth.userId);
     
     // Get optional status filter from query params
     const { searchParams } = new URL(request.url);
     const status = searchParams.get("status");
     
     // Get all workouts for the client
-    let workouts = await getWorkoutsByClientId(params.id);
+    let workouts = await getWorkoutsByClientId(id);
     
     // Filter by status if provided
     if (status) {

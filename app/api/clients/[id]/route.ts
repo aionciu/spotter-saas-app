@@ -9,15 +9,16 @@ import { updateClientSchema } from "@/lib/schemas/client";
  */
 export async function GET(
   request: Request,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id } = await params;
     const auth = await authenticateRequest();
     
-    const client = await getClientById(params.id);
+    const client = await getClientById(id);
     
     // Verify client belongs to user
-    await verifyClientOwnership(params.id, auth.userId);
+    await verifyClientOwnership(id, auth.userId);
     
     return NextResponse.json({ client });
   } catch (error) {
@@ -46,18 +47,19 @@ export async function GET(
  */
 export async function PUT(
   request: Request,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id } = await params;
     const auth = await authenticateRequest();
     
     // Verify client belongs to user
-    await verifyClientOwnership(params.id, auth.userId);
+    await verifyClientOwnership(id, auth.userId);
     
     const body = await request.json();
     const validatedData = updateClientSchema.parse(body);
     
-    const client = await updateClient(params.id, {
+    const client = await updateClient(id, {
       name: validatedData.name,
       gender: validatedData.gender ?? null,
       notes: validatedData.notes ?? null,
@@ -99,15 +101,16 @@ export async function PUT(
  */
 export async function DELETE(
   request: Request,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id } = await params;
     const auth = await authenticateRequest();
     
     // Verify client belongs to user
-    await verifyClientOwnership(params.id, auth.userId);
+    await verifyClientOwnership(id, auth.userId);
     
-    await deleteClient(params.id);
+    await deleteClient(id);
     
     return NextResponse.json({ success: true });
   } catch (error) {

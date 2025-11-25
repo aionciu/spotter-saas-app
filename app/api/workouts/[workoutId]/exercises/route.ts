@@ -12,9 +12,10 @@ import { createExerciseSchema } from "@/lib/schemas/workout";
  */
 export async function GET(
   request: Request,
-  { params }: { params: { workoutId: string } }
+  { params }: { params: Promise<{ workoutId: string }> }
 ) {
   try {
+    const { workoutId } = await params;
     const clerkUserId = await getCurrentUserId();
     if (!clerkUserId) {
       return NextResponse.json(
@@ -24,7 +25,7 @@ export async function GET(
     }
 
     const user = await getUserByClerkId(clerkUserId);
-    const workout = await getWorkoutById(params.workoutId);
+    const workout = await getWorkoutById(workoutId);
     const client = await getClientById(workout.client_id);
 
     // Verify workout belongs to user's client
@@ -54,9 +55,10 @@ export async function GET(
  */
 export async function POST(
   request: Request,
-  { params }: { params: { workoutId: string } }
+  { params }: { params: Promise<{ workoutId: string }> }
 ) {
   try {
+    const { workoutId } = await params;
     const clerkUserId = await getCurrentUserId();
     if (!clerkUserId) {
       return NextResponse.json(
@@ -66,16 +68,16 @@ export async function POST(
     }
 
     // Enforce subscription limits before creating
-    await enforceExerciseLimit(params.workoutId);
+    await enforceExerciseLimit(workoutId);
 
     const body = await request.json();
     const validatedData = createExerciseSchema.parse({
       ...body,
-      workout_id: params.workoutId,
+      workout_id: workoutId,
     });
 
     // Get workout to determine order_index
-    const workout = await getWorkoutById(params.workoutId);
+    const workout = await getWorkoutById(workoutId);
     const currentExercises = workout.exercises || [];
     const maxOrderIndex = currentExercises.length > 0
       ? Math.max(...currentExercises.map((e: { order_index: number }) => e.order_index || 0))

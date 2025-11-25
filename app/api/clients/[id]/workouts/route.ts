@@ -2,19 +2,20 @@ import { NextResponse } from "next/server";
 import { getCurrentUserId } from "@/lib/clerk";
 import { getUserByClerkId } from "@/lib/db/queries/users";
 import { getClientById } from "@/lib/db/queries/clients";
-import { createPackage, getPackagesByClientId } from "@/lib/db/queries/packages";
-import { enforcePackageLimit } from "@/lib/subscriptions/enforce-limits";
-import { createPackageSchema } from "@/lib/schemas/package";
+import { createWorkout, getWorkoutsByClientId } from "@/lib/db/queries/workouts";
+import { enforceWorkoutLimit } from "@/lib/subscriptions/enforce-limits";
+import { createWorkoutSchema } from "@/lib/schemas/workout";
 
 /**
- * GET /api/clients/[clientId]/packages
- * Get all packages for a client
+ * GET /api/clients/[id]/workouts
+ * Get all workouts for a client
  */
 export async function GET(
   request: Request,
-  { params }: { params: { clientId: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id: clientId } = await params;
     const clerkUserId = await getCurrentUserId();
     if (!clerkUserId) {
       return NextResponse.json(
@@ -24,7 +25,7 @@ export async function GET(
     }
 
     const user = await getUserByClerkId(clerkUserId);
-    const client = await getClientById(params.clientId);
+    const client = await getClientById(clientId);
 
     // Verify client belongs to user
     if (client.trainer_id !== user.id) {
@@ -34,14 +35,14 @@ export async function GET(
       );
     }
 
-    const packages = await getPackagesByClientId(params.clientId);
+    const workouts = await getWorkoutsByClientId(clientId);
 
-    return NextResponse.json({ packages });
+    return NextResponse.json({ workouts });
   } catch (error) {
-    console.error("Error fetching packages:", error);
+    console.error("Error fetching workouts:", error);
     return NextResponse.json(
       {
-        error: "Failed to fetch packages",
+        error: "Failed to fetch workouts",
         details: error instanceof Error ? error.message : String(error),
       },
       { status: 500 }
@@ -50,14 +51,15 @@ export async function GET(
 }
 
 /**
- * POST /api/clients/[clientId]/packages
- * Create a new package for a client with subscription limit enforcement
+ * POST /api/clients/[id]/workouts
+ * Create a new workout for a client with subscription limit enforcement
  */
 export async function POST(
   request: Request,
-  { params }: { params: { clientId: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id: clientId } = await params;
     const clerkUserId = await getCurrentUserId();
     if (!clerkUserId) {
       return NextResponse.json(
@@ -67,25 +69,24 @@ export async function POST(
     }
 
     // Enforce subscription limits before creating
-    await enforcePackageLimit(params.clientId);
+    await enforceWorkoutLimit(clientId);
 
     const body = await request.json();
-    const validatedData = createPackageSchema.parse({
+    const validatedData = createWorkoutSchema.parse({
       ...body,
-      client_id: params.clientId,
+      client_id: clientId,
     });
 
-    const packageData = await createPackage({
+    const workout = await createWorkout({
       client_id: validatedData.client_id,
-      total_sessions: validatedData.total_sessions,
-      remaining_sessions: validatedData.total_sessions,
-      expiration_date: validatedData.expiration_date ?? null,
-      is_active: true,
+      name: validatedData.name,
+      date: validatedData.date ? new Date(validatedData.date).toISOString() : new Date().toISOString(),
+      status: validatedData.status || "planned",
     });
 
-    return NextResponse.json({ package: packageData }, { status: 201 });
+    return NextResponse.json({ workout }, { status: 201 });
   } catch (error) {
-    console.error("Error creating package:", error);
+    console.error("Error creating workout:", error);
 
     // Handle validation errors
     if (error instanceof Error && error.name === "ZodError") {
@@ -105,7 +106,7 @@ export async function POST(
 
     return NextResponse.json(
       {
-        error: "Failed to create package",
+        error: "Failed to create workout",
         details: error instanceof Error ? error.message : String(error),
       },
       { status: 500 }
