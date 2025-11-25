@@ -27,7 +27,7 @@ vi.mock("next/server", () => ({
     json: vi.fn((data, init) => ({
       json: async () => data,
       status: init?.status || 200,
-      headers: new Headers(init?.headers),
+      headers: init?.headers ? new Headers(init.headers) : new Headers(),
     })),
     redirect: vi.fn((url) => ({
       url,
