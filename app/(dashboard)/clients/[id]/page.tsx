@@ -8,9 +8,11 @@ import { Button } from "@/components/ui/button";
 import { LoadingSpinner } from "@/components/ui/loading-spinner";
 import { NotFound } from "@/components/errors/NotFound";
 import { EditClientDialog } from "@/components/clients/EditClientDialog";
+import { CreatePackageDialog } from "@/components/packages/CreatePackageDialog";
+import { PackageCard } from "@/components/packages/PackageCard";
 import { useDeleteClient } from "@/hooks/useClients";
 import { usePackages } from "@/hooks/usePackages";
-import { ArrowLeft, Edit, Trash2, Package, Calendar, User } from "lucide-react";
+import { ArrowLeft, Edit, Trash2, Package, Calendar, User, History } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import type { Client } from "@/lib/types/client";
 
@@ -27,6 +29,7 @@ export default function ClientDetailPage() {
   const router = useRouter();
   const clientId = params.id as string;
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
+  const [isCreatePackageDialogOpen, setIsCreatePackageDialogOpen] = useState(false);
 
   // Fetch client data
   const { data: clientData, isLoading: isLoadingClient, error: clientError } = useQuery<{ client: Client }>({
@@ -46,6 +49,10 @@ export default function ClientDetailPage() {
   const packages = packagesData?.packages ?? [];
   const activePackage = packages.find(
     (pkg) => pkg.is_active && pkg.remaining_sessions > 0
+  );
+  // Show all packages except the currently active one in history
+  const inactivePackages = packages.filter(
+    (pkg) => pkg.id !== activePackage?.id
   );
 
   const deleteClient = useDeleteClient();
@@ -158,38 +165,20 @@ export default function ClientDetailPage() {
           </CardContent>
         </Card>
       ) : activePackage ? (
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Package className="h-5 w-5" />
-              Active Package
-            </CardTitle>
-            <CardDescription>
-              Current package with remaining sessions
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-muted-foreground">Remaining Sessions</p>
-                <p className="text-2xl font-bold">
-                  {activePackage.remaining_sessions} / {activePackage.total_sessions}
-                </p>
-              </div>
-              <Badge variant="default">
-                {Math.round((activePackage.remaining_sessions / activePackage.total_sessions) * 100)}% remaining
-              </Badge>
-            </div>
-            {activePackage.expiration_date && (
-              <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                <Calendar className="h-4 w-4" />
-                <span>
-                  Expires: {new Date(activePackage.expiration_date).toLocaleDateString()}
-                </span>
-              </div>
-            )}
-          </CardContent>
-        </Card>
+        <div className="space-y-4">
+          <div className="flex items-center justify-between">
+            <h2 className="text-xl font-semibold">Active Package</h2>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setIsCreatePackageDialogOpen(true)}
+            >
+              <Package className="mr-2 h-4 w-4" />
+              Create New Package
+            </Button>
+          </div>
+          <PackageCard package={activePackage} />
+        </div>
       ) : (
         <Card>
           <CardHeader>
@@ -202,12 +191,50 @@ export default function ClientDetailPage() {
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <Button variant="outline" onClick={() => {/* TODO: Navigate to create package */}}>
+            <Button onClick={() => setIsCreatePackageDialogOpen(true)}>
               <Package className="mr-2 h-4 w-4" />
               Create Package
             </Button>
           </CardContent>
         </Card>
+      )}
+
+      {/* Package History */}
+      {!isLoadingPackages && (
+        <>
+          {inactivePackages.length > 0 ? (
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <History className="h-5 w-5" />
+                  Package History
+                </CardTitle>
+                <CardDescription>
+                  {inactivePackages.length} previous package{inactivePackages.length !== 1 ? "s" : ""} for this client
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="grid gap-4 md:grid-cols-2">
+                  {inactivePackages.map((pkg) => (
+                    <PackageCard key={pkg.id} package={pkg} />
+                  ))}
+                </div>
+              </CardContent>
+            </Card>
+          ) : packages.length > 0 ? (
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <History className="h-5 w-5" />
+                  Package History
+                </CardTitle>
+                <CardDescription>
+                  No previous packages yet. Create additional packages to see history here.
+                </CardDescription>
+              </CardHeader>
+            </Card>
+          ) : null}
+        </>
       )}
 
       {/* Quick Actions */}
@@ -220,7 +247,10 @@ export default function ClientDetailPage() {
         </CardHeader>
         <CardContent>
           <div className="flex flex-wrap gap-2">
-            <Button variant="outline" onClick={() => {/* TODO: Navigate to create package */}}>
+            <Button
+              variant="outline"
+              onClick={() => setIsCreatePackageDialogOpen(true)}
+            >
               <Package className="mr-2 h-4 w-4" />
               Create Package
             </Button>
@@ -228,8 +258,8 @@ export default function ClientDetailPage() {
               <Calendar className="mr-2 h-4 w-4" />
               Start Workout
             </Button>
-            <Button variant="outline" onClick={() => {/* TODO: Navigate to history */}}>
-              <Calendar className="mr-2 h-4 w-4" />
+            <Button variant="outline" onClick={() => router.push(`/history?client=${clientId}`)}>
+              <History className="mr-2 h-4 w-4" />
               View History
             </Button>
           </div>
@@ -241,6 +271,14 @@ export default function ClientDetailPage() {
         open={isEditDialogOpen}
         onOpenChange={setIsEditDialogOpen}
         client={client}
+      />
+
+      {/* Create Package Dialog */}
+      <CreatePackageDialog
+        open={isCreatePackageDialogOpen}
+        onOpenChange={setIsCreatePackageDialogOpen}
+        clientId={clientId}
+        clientName={client.name}
       />
     </div>
   );
